@@ -4,8 +4,8 @@ let partsByNumber = {};       // partNumber -> part object
 let operators = [];           // { name, trainings: { [partNumber]: level } }
 
 // Config for your current CSV layout (you can tweak if your sheet changes)
-const HEADER_ROW_INDEX = 11;       // zero-based; row 12 in Excel
-const FIRST_DATA_ROW_INDEX = 12;   // first row with actual part data
+const HEADER_ROW_INDEX = 12;       // zero-based; row 12 in Excel
+const FIRST_DATA_ROW_INDEX = 13;   // first row with actual part data
 const OPERATOR_COL_START = 16;     // "Eden" column index
 const OPERATOR_COL_END   = 38;     // "Nikki, NPI" column index
 
