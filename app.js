@@ -9,6 +9,15 @@ const FIRST_DATA_ROW_INDEX = 13;   // first row with actual part data
 const OPERATOR_COL_START = 16;     // "Eden" column index
 const OPERATOR_COL_END   = 38;     // "Nikki, NPI" column index
 
+// ====== TRAINING LEVEL LOGIC ======
+// "In Process" = NOT trained, but still a visible status.
+// The others count as "trained" for totals.
+function isLevelTrained(level) {
+  if (!level) return false;
+  const v = level.trim().toLowerCase();
+  return v === "trained" || v === "trainer 1" || v === "trainer 2";
+}
+
 // ====== DOM ELEMENTS ======
 const csvInput = document.getElementById("csvInput");
 const loadStatus = document.getElementById("loadStatus");
