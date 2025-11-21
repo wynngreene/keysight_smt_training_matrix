@@ -380,7 +380,7 @@ addOperatorBtn.addEventListener("click", () => {
 saveTrainingBtn.addEventListener("click", () => {
   const opName = editOperatorSelect.value || "";
   const pn = editPartInput.value || "";
-  const lvl = editLevelInput.value || "";
+  const lvl = editLevelSelect.value || "";
 
   const result = setOperatorTraining(opName, pn, lvl, {
     createOperatorIfMissing: false,
@@ -390,6 +390,10 @@ saveTrainingBtn.addEventListener("click", () => {
   saveTrainingMsg.textContent = result.message;
 
   if (result.success) {
+    // Clear selection if you want
+    // editLevelSelect.value = "";
+
+    // Refresh views if currently filtered
     if (operatorSelect.value === opName) {
       renderOperatorView(opName);
     }
@@ -398,3 +402,4 @@ saveTrainingBtn.addEventListener("click", () => {
     }
   }
 });
+
