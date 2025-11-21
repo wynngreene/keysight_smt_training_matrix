@@ -257,7 +257,7 @@ function clearViews() {
   partHeader.textContent = "Scan or enter a part number to see who is trained.";
 }
 
-// ====== RENDERING: BY OPERATOR (WITH PAGINATION) ======
+// ====== RENDERING: BY OPERATOR (WITH PAGINATION & CLICKABLE PARTS) ======
 
 operatorSelect.addEventListener("change", () => {
   const opName = operatorSelect.value;
@@ -317,13 +317,32 @@ function renderOperatorView(operatorName, page = 1) {
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${part.partNumber}</td>
+      <td>
+        <button
+          type="button"
+          class="btn btn-link p-0 operator-part-btn"
+          data-part-number="${part.partNumber}"
+        >
+          ${part.partNumber}
+        </button>
+      </td>
       <td>${part.commonName}</td>
       <td>${part.family}</td>
       <td>${part.status}</td>
       <td>${level}</td>
     `;
     operatorTableBody.appendChild(tr);
+  });
+
+  // Make part numbers clickable → populate Scan input + update part view
+  const partButtons = operatorTableBody.querySelectorAll(".operator-part-btn");
+  partButtons.forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const pn = e.currentTarget.dataset.partNumber;
+      if (!pn) return;
+      partScanInput.value = pn;
+      renderPartView(pn);
+    });
   });
 
   renderOperatorPagination(totalItems, safePage, startIndex + 1, endIndex);
