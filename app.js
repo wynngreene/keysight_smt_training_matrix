@@ -30,7 +30,7 @@ const addOperatorMsg = document.getElementById("addOperatorMsg");
 
 const editOperatorSelect = document.getElementById("editOperatorSelect");
 const editPartInput = document.getElementById("editPartInput");
-const editLevelInput = document.getElementById("editLevelInput");
+const editLevelSelect = document.getElementById("editLevelSelect");
 const saveTrainingBtn = document.getElementById("saveTrainingBtn");
 const saveTrainingMsg = document.getElementById("saveTrainingMsg");
 
@@ -390,7 +390,6 @@ saveTrainingBtn.addEventListener("click", () => {
   saveTrainingMsg.textContent = result.message;
 
   if (result.success) {
-    // Refresh views if currently filtered
     if (operatorSelect.value === opName) {
       renderOperatorView(opName);
     }
