@@ -3,6 +3,11 @@ let parts = [];               // { partNumber, family, commonName, description, 
 let partsByNumber = {};       // partNumber -> part object
 let operators = [];           // { name, trainings: { [partNumber]: level } }
 
+// ====== PAGINATION CONFIG ======
+const OPERATOR_PAGE_SIZE = 15;
+let currentOperatorName = null;
+let currentOperatorPage = 1;
+
 // ====== CSV CONFIG FOR YOUR LAYOUT ======
 // Row 13 in Excel (zero-based index 12) = real header row with Eden, Lourdes, etc.
 const HEADER_ROW_INDEX = 12;       // zero-based index
@@ -26,6 +31,7 @@ const loadStatus = document.getElementById("loadStatus");
 const operatorSelect = document.getElementById("operatorSelect");
 const operatorViewTitle = document.getElementById("operatorViewTitle");
 const operatorTableBody = document.querySelector("#operatorTable tbody");
+const operatorTable = document.getElementById("operatorTable");
 
 const partScanInput = document.getElementById("partScanInput");
 const searchPartBtn = document.getElementById("searchPartBtn");
@@ -43,6 +49,18 @@ const editPartInput = document.getElementById("editPartInput");
 const editLevelSelect = document.getElementById("editLevelSelect");
 const saveTrainingBtn = document.getElementById("saveTrainingBtn");
 const saveTrainingMsg = document.getElementById("saveTrainingMsg");
+
+// Create / grab pagination container for operator view
+let operatorPagination = document.getElementById("operatorPagination");
+if (!operatorPagination && operatorTable) {
+  const tableWrapper = operatorTable.parentElement; // .table-responsive
+  if (tableWrapper && tableWrapper.parentElement) {
+    operatorPagination = document.createElement("div");
+    operatorPagination.id = "operatorPagination";
+    operatorPagination.className = "mt-2";
+    tableWrapper.parentElement.appendChild(operatorPagination);
+  }
+}
 
 // ====== CSV LOAD & PARSE ======
 
@@ -233,30 +251,41 @@ function populateSelectWithOperators(selectElem, placeholder) {
 function clearViews() {
   operatorTableBody.innerHTML = "";
   operatorViewTitle.textContent = "Select an operator to see their trained parts.";
+  if (operatorPagination) operatorPagination.innerHTML = "";
 
   partResultBody.innerHTML = "";
   partHeader.textContent = "Scan or enter a part number to see who is trained.";
 }
 
-// ====== RENDERING: BY OPERATOR ======
+// ====== RENDERING: BY OPERATOR (WITH PAGINATION) ======
 
 operatorSelect.addEventListener("change", () => {
   const opName = operatorSelect.value;
   if (!opName) {
     operatorTableBody.innerHTML = "";
     operatorViewTitle.textContent = "Select an operator to see their trained parts.";
+    if (operatorPagination) operatorPagination.innerHTML = "";
+    currentOperatorName = null;
+    currentOperatorPage = 1;
     return;
   }
-  renderOperatorView(opName);
+  currentOperatorName = opName;
+  currentOperatorPage = 1;
+  renderOperatorView(opName, 1);
 });
 
-function renderOperatorView(operatorName) {
+function renderOperatorView(operatorName, page = 1) {
   const op = getOperatorByName(operatorName);
   if (!op) return;
 
+  currentOperatorName = op.name;
+  currentOperatorPage = page;
+
   operatorTableBody.innerHTML = "";
+  if (operatorPagination) operatorPagination.innerHTML = "";
 
   const entries = Object.entries(op.trainings); // [ [partNumber, level], ... ]
+  const totalItems = entries.length;
 
   // Count only levels that are truly "trained"
   const trainedCount = entries.filter(([, level]) => isLevelTrained(level)).length;
@@ -264,14 +293,20 @@ function renderOperatorView(operatorName) {
   operatorViewTitle.textContent =
     `Showing training for: ${op.name} — ${trainedCount} trained part(s)`;
 
-  if (entries.length === 0) {
+  if (totalItems === 0) {
     const tr = document.createElement("tr");
     tr.innerHTML = `<td colspan="5" class="text-muted">No training data for this operator yet.</td>`;
     operatorTableBody.appendChild(tr);
     return;
   }
 
-  entries.forEach(([partNumber, level]) => {
+  const totalPages = Math.ceil(totalItems / OPERATOR_PAGE_SIZE);
+  const safePage = Math.min(Math.max(page, 1), totalPages);
+  const startIndex = (safePage - 1) * OPERATOR_PAGE_SIZE;
+  const endIndex = Math.min(startIndex + OPERATOR_PAGE_SIZE, totalItems);
+  const pageEntries = entries.slice(startIndex, endIndex);
+
+  pageEntries.forEach(([partNumber, level]) => {
     const part = partsByNumber[partNumber] || {
       partNumber,
       family: "",
@@ -290,6 +325,67 @@ function renderOperatorView(operatorName) {
     `;
     operatorTableBody.appendChild(tr);
   });
+
+  renderOperatorPagination(totalItems, safePage, startIndex + 1, endIndex);
+}
+
+function renderOperatorPagination(totalItems, page, from, to) {
+  if (!operatorPagination) return;
+
+  const totalPages = Math.ceil(totalItems / OPERATOR_PAGE_SIZE);
+  operatorPagination.innerHTML = "";
+  if (totalPages <= 1) return;
+
+  const row = document.createElement("div");
+  row.className = "d-flex justify-content-between align-items-center mt-2";
+
+  const infoSpan = document.createElement("span");
+  infoSpan.className = "small text-muted";
+  infoSpan.textContent = `Showing ${from}-${to} of ${totalItems} part(s)`;
+  row.appendChild(infoSpan);
+
+  const navDiv = document.createElement("div");
+  const ul = document.createElement("ul");
+  ul.className = "pagination pagination-sm mb-0";
+
+  function addPage(label, targetPage, disabled = false, active = false) {
+    const li = document.createElement("li");
+    li.className = "page-item";
+    if (disabled) li.classList.add("disabled");
+    if (active) li.classList.add("active");
+
+    const a = document.createElement("a");
+    a.className = "page-link";
+    a.href = "#";
+    a.textContent = label;
+
+    if (!disabled && !active) {
+      a.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (!currentOperatorName) return;
+        renderOperatorView(currentOperatorName, targetPage);
+      });
+    }
+
+    li.appendChild(a);
+    ul.appendChild(li);
+  }
+
+  // Prev
+  addPage("«", page - 1, page === 1, false);
+
+  // Page numbers
+  for (let p = 1; p <= totalPages; p++) {
+    addPage(String(p), p, false, p === page);
+  }
+
+  // Next
+  addPage("»", page + 1, page === totalPages, false);
+
+  navDiv.appendChild(ul);
+  row.appendChild(navDiv);
+
+  operatorPagination.appendChild(row);
 }
 
 // ====== RENDERING: BY PART ======
@@ -356,6 +452,8 @@ function renderPartView(partNumber) {
 clearFiltersBtn.addEventListener("click", () => {
   operatorSelect.value = "";
   partScanInput.value = "";
+  currentOperatorName = null;
+  currentOperatorPage = 1;
   clearViews();
 });
 
@@ -386,7 +484,7 @@ saveTrainingBtn.addEventListener("click", () => {
 
   if (result.success) {
     if (operatorSelect.value === opName) {
-      renderOperatorView(opName);
+      renderOperatorView(opName, currentOperatorPage || 1);
     }
     if (partScanInput.value.trim() === pn.trim()) {
       renderPartView(pn);
