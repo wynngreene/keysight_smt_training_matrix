@@ -3,15 +3,16 @@ let parts = [];               // { partNumber, family, commonName, description, 
 let partsByNumber = {};       // partNumber -> part object
 let operators = [];           // { name, trainings: { [partNumber]: level } }
 
-// Config for your current CSV layout (you can tweak if your sheet changes)
-const HEADER_ROW_INDEX = 12;       // zero-based; row 12 in Excel
+// ====== CSV CONFIG FOR YOUR LAYOUT ======
+// Row 13 in Excel (zero-based index 12) = real header row with Eden, Lourdes, etc.
+const HEADER_ROW_INDEX = 12;       // zero-based index
 const FIRST_DATA_ROW_INDEX = 13;   // first row with actual part data
 const OPERATOR_COL_START = 16;     // "Eden" column index
 const OPERATOR_COL_END   = 38;     // "Nikki, NPI" column index
 
 // ====== TRAINING LEVEL LOGIC ======
-// "In Process" = NOT trained, but still a visible status.
-// The others count as "trained" for totals.
+// "In Process" = NOT trained; status only.
+// "Trained", "Trainer 1", "Trainer 2" = count as trained.
 function isLevelTrained(level) {
   if (!level) return false;
   const v = level.trim().toLowerCase();
@@ -74,46 +75,40 @@ function buildDataFromCsvRows(rows) {
   partsByNumber = {};
   operators = [];
 
-  // Get header row
   const headerRow = rows[HEADER_ROW_INDEX];
   if (!headerRow) {
     throw new Error("Header row not found at index " + HEADER_ROW_INDEX);
   }
 
-  // Operator names from header
   const operatorNames = headerRow
     .slice(OPERATOR_COL_START, OPERATOR_COL_END + 1)
     .map(name => (name || "").toString().trim())
     .filter(name => name !== "");
 
-  // Temp map for building operators
   const operatorsMap = {}; // name -> { name, trainings: {} }
 
-  // Walk data rows
   for (let r = FIRST_DATA_ROW_INDEX; r < rows.length; r++) {
     const row = rows[r];
     if (!row) continue;
 
     const partNumber = (row[2] || "").toString().trim();  // Col 2 = Part Number
-    if (!partNumber) continue; // skip empty lines
+    if (!partNumber) continue;
 
     const family = (row[1] || "").toString().trim();
     const commonName = (row[3] || "").toString().trim();
     const description = (row[4] || "").toString().trim();
     const status = (row[7] || "").toString().trim();
 
-    // Ensure part exists in our list
     if (!partsByNumber[partNumber]) {
       const part = { partNumber, family, commonName, description, status };
       parts.push(part);
       partsByNumber[partNumber] = part;
     }
 
-    // For each operator column, if there's a value, assign training
     operatorNames.forEach((opName, idx) => {
       const colIndex = OPERATOR_COL_START + idx;
       const cell = (row[colIndex] || "").toString().trim();
-      if (!cell) return; // no training info
+      if (!cell) return;
 
       if (!operatorsMap[opName]) {
         operatorsMap[opName] = {
@@ -122,15 +117,12 @@ function buildDataFromCsvRows(rows) {
         };
       }
 
-      // Example: "Trainer 1", "OJT", etc.
       operatorsMap[opName].trainings[partNumber] = cell;
     });
   }
 
-  // Convert operators map to array
   operators = Object.values(operatorsMap);
 
-  // Refresh dropdowns and clear views
   refreshOperatorDropdowns();
   clearViews();
 }
@@ -168,9 +160,6 @@ function addOperator(name) {
   return { success: true, message: `Operator "${trimmed}" added.` };
 }
 
-/**
- * Set/update training level for operator on a part.
- */
 function setOperatorTraining(operatorName, partNumber, level, options = {}) {
   const {
     createOperatorIfMissing = true,
@@ -195,9 +184,7 @@ function setOperatorTraining(operatorName, partNumber, level, options = {}) {
       return { success: false, message: `Operator "${opName}" does not exist.` };
     }
     const result = addOperator(opName);
-    if (!result.success) {
-      return result;
-    }
+    if (!result.success) return result;
     operator = getOperatorByName(opName);
   }
 
@@ -212,9 +199,7 @@ function setOperatorTraining(operatorName, partNumber, level, options = {}) {
 // ====== UI HELPERS ======
 
 function refreshOperatorDropdowns() {
-  // For main filter dropdown
   populateSelectWithOperators(operatorSelect, "(Select operator)");
-  // For edit-training dropdown
   populateSelectWithOperators(editOperatorSelect, "(Select operator)");
 }
 
@@ -237,7 +222,6 @@ function populateSelectWithOperators(selectElem, placeholder) {
       selectElem.appendChild(opt);
     });
 
-  // Try to keep previous value if still valid
   const exists = operators.some(op => op.name === currentValue);
   if (exists) {
     selectElem.value = currentValue;
@@ -270,11 +254,15 @@ function renderOperatorView(operatorName) {
   const op = getOperatorByName(operatorName);
   if (!op) return;
 
-  operatorViewTitle.textContent = `Showing training for: ${op.name}`;
-
   operatorTableBody.innerHTML = "";
 
   const entries = Object.entries(op.trainings); // [ [partNumber, level], ... ]
+
+  // Count only levels that are truly "trained"
+  const trainedCount = entries.filter(([, level]) => isLevelTrained(level)).length;
+
+  operatorViewTitle.textContent =
+    `Showing training for: ${op.name} — ${trainedCount} trained part(s)`;
 
   if (entries.length === 0) {
     const tr = document.createElement("tr");
@@ -331,7 +319,6 @@ function renderPartView(partNumber) {
     return;
   }
 
-  // Header info
   partHeader.innerHTML = `
     <strong>${part.partNumber}</strong> — ${part.commonName || "(no name)"}<br/>
     <span class="text-muted">
@@ -339,7 +326,6 @@ function renderPartView(partNumber) {
     </span>
   `;
 
-  // Find operators trained on this part
   const trainedList = operators
     .map(op => {
       const level = op.trainings[pn];
@@ -399,10 +385,6 @@ saveTrainingBtn.addEventListener("click", () => {
   saveTrainingMsg.textContent = result.message;
 
   if (result.success) {
-    // Clear selection if you want
-    // editLevelSelect.value = "";
-
-    // Refresh views if currently filtered
     if (operatorSelect.value === opName) {
       renderOperatorView(opName);
     }
@@ -411,4 +393,3 @@ saveTrainingBtn.addEventListener("click", () => {
     }
   }
 });
-
