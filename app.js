@@ -4,7 +4,7 @@ let partsByNumber = {};       // partNumber -> part object
 let operators = [];           // { name, trainings: { [partNumber]: level } }
 
 // ====== PAGINATION CONFIG ======
-const OPERATOR_PAGE_SIZE = 15;
+const OPERATOR_PAGE_SIZE = 10;
 let currentOperatorName = null;
 let currentOperatorPage = 1;
 
