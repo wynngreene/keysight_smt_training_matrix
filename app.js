@@ -4,7 +4,7 @@ let partsByNumber = {};       // partNumber -> part object
 let operators = [];           // { name, trainings: { [partNumber]: level } }
 
 // ====== PAGINATION CONFIG ======
-const OPERATOR_PAGE_SIZE = 10;
+const OPERATOR_PAGE_SIZE = 15;
 let currentOperatorName = null;
 let currentOperatorPage = 1;
 
@@ -22,6 +22,24 @@ function isLevelTrained(level) {
   if (!level) return false;
   const v = level.trim().toLowerCase();
   return v === "trained" || v === "trainer 1" || v === "trainer 2";
+}
+
+// Priority for sorting in 3B Training by Part
+// 1. Trainer 1
+// 2. Trainer 2
+// 3. Trained
+// 4. In Process
+// 5. Everything else (alphabetical after these)
+function levelPriority(level) {
+  if (!level) return 5;
+  const l = level.trim().toLowerCase();
+
+  if (l === "trainer 1") return 1;
+  if (l === "trainer 2") return 2;
+  if (l === "trained")   return 3;
+  if (l === "in process") return 4;
+
+  return 5;
 }
 
 // ====== DOM ELEMENTS ======
@@ -407,7 +425,7 @@ function renderOperatorPagination(totalItems, page, from, to) {
   operatorPagination.appendChild(row);
 }
 
-// ====== RENDERING: BY PART ======
+// ====== RENDERING: BY PART (WITH SORTED LEVEL ORDER) ======
 
 searchPartBtn.addEventListener("click", () => {
   const pn = partScanInput.value.trim();
@@ -441,7 +459,7 @@ function renderPartView(partNumber) {
     </span>
   `;
 
-  const trainedList = operators
+  let trainedList = operators
     .map(op => {
       const level = op.trainings[pn];
       if (!level) return null;
@@ -455,6 +473,15 @@ function renderPartView(partNumber) {
     partResultBody.appendChild(tr);
     return;
   }
+
+  // Sort by training level priority, then by operator name
+  trainedList.sort((a, b) => {
+    const prA = levelPriority(a.level);
+    const prB = levelPriority(b.level);
+
+    if (prA !== prB) return prA - prB;
+    return a.name.localeCompare(b.name);
+  });
 
   trainedList.forEach(item => {
     const tr = document.createElement("tr");
