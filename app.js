@@ -45,6 +45,7 @@ function levelPriority(level) {
 // ====== DOM ELEMENTS ======
 const csvInput = document.getElementById("csvInput");
 const loadStatus = document.getElementById("loadStatus");
+const readyBadge = document.getElementById("readyBadge");
 
 const operatorSelect = document.getElementById("operatorSelect");
 const operatorViewTitle = document.getElementById("operatorViewTitle");
@@ -80,32 +81,49 @@ if (!operatorPagination && operatorTable) {
   }
 }
 
-// ====== CSV LOAD & PARSE ======
-
+// ====== CSV LOADING + GREEN BADGE (EXACT PATTERN YOU REQUESTED) ======
 csvInput.addEventListener("change", () => {
   const file = csvInput.files[0];
   if (!file) return;
 
-  loadStatus.textContent = "Loading and parsing CSV...";
-  parseTrainingCsv(file);
-});
+  if (readyBadge) {
+    readyBadge.classList.add("d-none");
+  }
+  if (loadStatus) {
+    loadStatus.textContent = "Loading CSV…";
+  }
 
-function parseTrainingCsv(file) {
   Papa.parse(file, {
     header: false,
     skipEmptyLines: true,
     complete: (results) => {
       try {
-        buildDataFromCsvRows(results.data);
-        loadStatus.textContent = "CSV loaded. Parts and operators are ready.";
+        // Wrapper so we can keep your existing builder name
+        buildDataFromCsv(results.data);  // calls buildDataFromCsvRows internally
+
+        if (loadStatus) {
+          loadStatus.textContent = "CSV loaded. Training data ready.";
+        }
+        if (readyBadge) {
+          readyBadge.classList.remove("d-none");
+        }
       } catch (err) {
         console.error(err);
-        loadStatus.textContent = "Error parsing CSV. Check console for details.";
+        if (loadStatus) {
+          loadStatus.textContent = "Error reading CSV. Check console.";
+        }
       }
     }
   });
+});
+
+// This wrapper lets you keep the exact snippet you wanted
+// while still using the existing buildDataFromCsvRows implementation.
+function buildDataFromCsv(rows) {
+  buildDataFromCsvRows(rows);
 }
 
+// ====== BUILD DATA FROM CSV ROWS ======
 function buildDataFromCsvRows(rows) {
   parts = [];
   partsByNumber = {};
@@ -164,7 +182,6 @@ function buildDataFromCsvRows(rows) {
 }
 
 // ====== DATA HELPERS ======
-
 function getOperatorByName(name) {
   const target = name.trim().toLowerCase();
   return (
@@ -233,7 +250,6 @@ function setOperatorTraining(operatorName, partNumber, level, options = {}) {
 }
 
 // ====== UI HELPERS ======
-
 function refreshOperatorDropdowns() {
   populateSelectWithOperators(operatorSelect, "(Select operator)");
   populateSelectWithOperators(editOperatorSelect, "(Select operator)");
@@ -276,7 +292,6 @@ function clearViews() {
 }
 
 // ====== RENDERING: BY OPERATOR (WITH PAGINATION & CLICKABLE PARTS) ======
-
 operatorSelect.addEventListener("change", () => {
   const opName = operatorSelect.value;
   if (!opName) {
@@ -426,7 +441,6 @@ function renderOperatorPagination(totalItems, page, from, to) {
 }
 
 // ====== RENDERING: BY PART (WITH SORTED LEVEL ORDER) ======
-
 searchPartBtn.addEventListener("click", () => {
   const pn = partScanInput.value.trim();
   if (!pn) return;
@@ -494,7 +508,6 @@ function renderPartView(partNumber) {
 }
 
 // ====== CLEAR FILTERS ======
-
 clearFiltersBtn.addEventListener("click", () => {
   operatorSelect.value = "";
   partScanInput.value = "";
@@ -504,7 +517,6 @@ clearFiltersBtn.addEventListener("click", () => {
 });
 
 // ====== ADD OPERATOR (UI) ======
-
 addOperatorBtn.addEventListener("click", () => {
   const name = newOperatorNameInput.value;
   const result = addOperator(name);
@@ -515,7 +527,6 @@ addOperatorBtn.addEventListener("click", () => {
 });
 
 // ====== SAVE / UPDATE TRAINING (UI) ======
-
 saveTrainingBtn.addEventListener("click", () => {
   const opName = editOperatorSelect.value || "";
   const pn = editPartInput.value || "";
