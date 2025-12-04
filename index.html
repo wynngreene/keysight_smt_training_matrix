@@ -24,35 +24,34 @@
       </p>
     </div>
 
-    <!-- CSV Upload -->
-<section class="card mb-4">
-  <div class="card-body">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h2 class="h5 card-title mb-0">1. Load Training CSV</h2>
-
-      <!-- NEW PART FAMILY BUTTON -->
+    <!-- Part Family Button (kept, moved above CSV card) -->
+    <div class="d-flex justify-content-end mb-3">
       <a href="part_family.html" class="btn btn-primary text-white fw-bold">
         Part Family
       </a>
     </div>
 
-    <p class="text-muted small mb-3">
-      Select the exported training CSV from Excel. The app will build a
-      <strong>Parts list</strong> and an <strong>Operators list</strong> from it.
-    </p>
+    <!-- CSV Upload Card (EXACT BLOCK YOU REQUESTED) -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h5 class="card-title mb-2">Upload Training Matrix (CSV)</h5>
+        <p class="card-text mb-2">
+          Upload your operator training sheet so the system knows who is trained on each part.
+        </p>
 
-    <div class="row g-3 align-items-center">
-      <div class="col-md-6">
-        <input type="file" id="csvInput" accept=".csv" class="form-control" />
-      </div>
-      <div class="col-md-6">
-        <span id="loadStatus" class="text-muted small">
-          No file loaded yet.
-        </span>
+        <div class="row g-3 align-items-center">
+          <div class="col-sm-6 col-md-4 col-lg-3">
+            <input type="file" id="csvInput" accept=".csv" class="form-control form-control-sm" />
+          </div>
+        </div>
+
+        <div id="loadStatus" class="mt-2 small"></div>
+
+        <div id="readyBadge" class="mt-2 d-none">
+          <span class="badge bg-success p-2 fs-6">✔ Ready to Scan Parts</span>
+        </div>
       </div>
     </div>
-  </div>
-</section>
 
     <!-- Filters / Search -->
     <div class="card mb-4">
@@ -198,22 +197,21 @@
                 />
               </div>
 
-<div class="col-md-4">
-  <label for="editLevelSelect" class="form-label small">
-    Training Level
-  </label>
-  <select
-    id="editLevelSelect"
-    class="form-select form-select-sm"
-  >
-    <option value="">(Select level)</option>
-    <option value="In Process">In Process</option>
-    <option value="Trained">Trained</option>
-    <option value="Trainer 1">Trainer 1</option>
-    <option value="Trainer 2">Trainer 2</option>
-  </select>
-</div>
-
+              <div class="col-md-4">
+                <label for="editLevelSelect" class="form-label small">
+                  Training Level
+                </label>
+                <select
+                  id="editLevelSelect"
+                  class="form-select form-select-sm"
+                >
+                  <option value="">(Select level)</option>
+                  <option value="In Process">In Process</option>
+                  <option value="Trained">Trained</option>
+                  <option value="Trainer 1">Trainer 1</option>
+                  <option value="Trainer 2">Trainer 2</option>
+                </select>
+              </div>
 
               <div class="col-12 mt-2">
                 <button id="saveTrainingBtn" class="btn btn-primary btn-sm me-2">
