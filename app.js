@@ -81,7 +81,7 @@ if (!operatorPagination && operatorTable) {
   }
 }
 
-// ====== CSV LOADING + GREEN BADGE (EXACT PATTERN YOU REQUESTED) ======
+// ====== CSV LOADING + GREEN BADGE ======
 csvInput.addEventListener("change", () => {
   const file = csvInput.files[0];
   if (!file) return;
@@ -98,8 +98,7 @@ csvInput.addEventListener("change", () => {
     skipEmptyLines: true,
     complete: (results) => {
       try {
-        // Wrapper so we can keep your existing builder name
-        buildDataFromCsv(results.data);  // calls buildDataFromCsvRows internally
+        buildDataFromCsv(results.data);
 
         if (loadStatus) {
           loadStatus.textContent = "CSV loaded. Training data ready.";
@@ -117,8 +116,7 @@ csvInput.addEventListener("change", () => {
   });
 });
 
-// This wrapper lets you keep the exact snippet you wanted
-// while still using the existing buildDataFromCsvRows implementation.
+// Wrapper to keep snippet clean
 function buildDataFromCsv(rows) {
   buildDataFromCsvRows(rows);
 }
@@ -440,7 +438,7 @@ function renderOperatorPagination(totalItems, page, from, to) {
   operatorPagination.appendChild(row);
 }
 
-// ====== RENDERING: BY PART (WITH SORTED LEVEL ORDER) ======
+// ====== RENDERING: BY PART (WITH SORTED LEVEL ORDER + CLICKABLE OPERATORS) ======
 searchPartBtn.addEventListener("click", () => {
   const pn = partScanInput.value.trim();
   if (!pn) return;
@@ -500,10 +498,40 @@ function renderPartView(partNumber) {
   trainedList.forEach(item => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${item.name}</td>
+      <td>
+        <button
+          type="button"
+          class="btn btn-link p-0 part-operator-btn"
+          data-operator-name="${item.name}"
+        >
+          ${item.name}
+        </button>
+      </td>
       <td>${item.level}</td>
     `;
     partResultBody.appendChild(tr);
+  });
+
+  // Make operator names clickable → select operator & show their parts (3A)
+  const opButtons = partResultBody.querySelectorAll(".part-operator-btn");
+  opButtons.forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const name = e.currentTarget.dataset.operatorName;
+      if (!name) return;
+
+      // Set dropdown and render view
+      operatorSelect.value = name;
+      editOperatorSelect.value = name;
+      currentOperatorName = name;
+      currentOperatorPage = 1;
+      renderOperatorView(name, 1);
+
+      // Optional: scroll to operator table
+      document.getElementById("operatorTable").scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    });
   });
 }
 
@@ -548,3 +576,17 @@ saveTrainingBtn.addEventListener("click", () => {
     }
   }
 });
+
+// ====== FORCE UPPERCASE FOR PART NUMBER INPUTS ======
+function forceUppercaseInput(elem) {
+  if (!elem) return;
+  elem.addEventListener("input", () => {
+    const start = elem.selectionStart;
+    const end = elem.selectionEnd;
+    elem.value = elem.value.toUpperCase();
+    elem.setSelectionRange(start, end);
+  });
+}
+
+forceUppercaseInput(partScanInput);
+forceUppercaseInput(editPartInput);
